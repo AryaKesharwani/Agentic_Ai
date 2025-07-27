@@ -171,7 +171,7 @@ export class IntentClassifier {
     let bestScore = 0.1; // Minimum threshold
     let bestKeywords: string[] = [];
 
-    for (const [intentType, score] of scores.entries()) {
+    for (const [intentType, score] of Array.from(scores.entries())) {
       if (score > bestScore) {
         bestScore = score;
         bestIntent = intentType;

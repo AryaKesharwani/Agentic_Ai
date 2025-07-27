@@ -82,7 +82,7 @@ export default function NegotiationDialog({
       case 'rejected':
         return <Close />;
       default:
-        return null;
+        return undefined;
     }
   };
 

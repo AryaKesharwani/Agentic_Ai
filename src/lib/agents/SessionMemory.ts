@@ -74,7 +74,7 @@ export class SessionMemory {
     const queryLower = query.toLowerCase();
     const queryWords = queryLower.split(/\s+/);
 
-    for (const [id, item] of this.memory.entries()) {
+    for (const [id, item] of Array.from(this.memory.entries())) {
       const relevanceScore = this.calculateRelevance(item, queryWords, queryLower);
       
       if (relevanceScore > 0.1) { // Minimum relevance threshold
@@ -122,7 +122,7 @@ export class SessionMemory {
     const queryWords = queryLower.split(/\s+/);
     const results: MemoryItem[] = [];
 
-    for (const [id, item] of this.memory.entries()) {
+    for (const [id, item] of Array.from(this.memory.entries())) {
       const relevanceScore = this.calculateRelevance(item, queryWords, queryLower);
       
       if (relevanceScore > 0.2) { // Higher threshold for search
@@ -326,7 +326,7 @@ export class SessionMemory {
     const cutoffTime = Date.now() - maxAge;
     let deletedCount = 0;
 
-    for (const [id, item] of this.memory.entries()) {
+    for (const [id, item] of Array.from(this.memory.entries())) {
       // Keep frequently used items longer
       const adjustedMaxAge = maxAge * (1 + item.usageCount * 0.1);
       

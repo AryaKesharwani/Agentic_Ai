@@ -60,15 +60,12 @@ const theme = createTheme({
     },
     surface: {
       main: '#ffffff',
-      variant: '#f5f5f5',
     },
     onSurface: {
       main: '#1c1b1f',
-      variant: '#49454f',
     },
     outline: {
       main: '#79747e',
-      variant: '#cac4d0',
     },
     text: {
       primary: '#1c1b1f',

@@ -1,21 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ElevenLabs } from '@elevenlabs/elevenlabs-js';
 
-// Initialize ElevenLabs client
-let elevenlabs: ElevenLabs | null = null;
+// ElevenLabs API configuration
+const ELEVENLABS_API_BASE = 'https://api.elevenlabs.io/v1';
 
-function getElevenLabsClient() {
-  if (!elevenlabs) {
-    const apiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
-    if (!apiKey) {
-      throw new Error('ElevenLabs API key not configured');
-    }
-    
-    elevenlabs = new ElevenLabs({
-      apiKey: apiKey,
-    });
+async function synthesizeSpeech(text: string, voiceId: string, modelId: string, voiceSettings: any) {
+  const apiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    throw new Error('ElevenLabs API key not configured');
   }
-  return elevenlabs;
+
+  const response = await fetch(`${ELEVENLABS_API_BASE}/text-to-speech/${voiceId}`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'audio/mpeg',
+      'Content-Type': 'application/json',
+      'xi-api-key': apiKey,
+    },
+    body: JSON.stringify({
+      text: text,
+      model_id: modelId,
+      voice_settings: voiceSettings,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`ElevenLabs API error: ${response.status} ${response.statusText}`);
+  }
+
+  return response.arrayBuffer();
+}
+
+async function getVoices() {
+  const apiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    throw new Error('ElevenLabs API key not configured');
+  }
+
+  const response = await fetch(`${ELEVENLABS_API_BASE}/voices`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'xi-api-key': apiKey,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`ElevenLabs API error: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
 }
 
 export async function POST(request: NextRequest) {
@@ -47,45 +80,19 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const client = getElevenLabsClient();
-
-      const audioStream = await client.generate({
-        voice: voiceId,
-        model_id: modelId,
-        text: text,
-        voice_settings: {
-          stability: stability,
-          similarity_boost: similarityBoost,
-          style: style,
-          use_speaker_boost: useSpeakerBoost,
-        },
+      const audioBuffer = await synthesizeSpeech(text, voiceId, modelId, {
+        stability: stability,
+        similarity_boost: similarityBoost,
+        style: style,
+        use_speaker_boost: useSpeakerBoost,
       });
-
-      // Convert stream to buffer
-      const reader = audioStream.getReader();
-      const chunks: Uint8Array[] = [];
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-      }
-
-      const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-      const audioBuffer = new Uint8Array(totalLength);
-      let offset = 0;
-
-      for (const chunk of chunks) {
-        audioBuffer.set(chunk, offset);
-        offset += chunk.length;
-      }
 
       // Return audio data with proper headers
       return new NextResponse(audioBuffer, {
         status: 200,
         headers: {
           'Content-Type': 'audio/mpeg',
-          'Content-Length': audioBuffer.length.toString(),
+          'Content-Length': audioBuffer.byteLength.toString(),
           'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
         },
       });
@@ -116,8 +123,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   // Handle voice list requests
   try {
-    const client = getElevenLabsClient();
-    const voices = await client.voices.getAll();
+    const voices = await getVoices();
     
     return NextResponse.json({
       voices: voices.voices || [],
